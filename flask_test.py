@@ -16,6 +16,19 @@ def image():
     но не нашлась">'''.format(url_for('static', filename='img/test.jpeg'))
 
 
+@app.route('/text_in_alert/<text>')
+def alert(text):
+    return f'''
+    <link rel="stylesheet"
+                    href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+                    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+                    crossorigin="anonymous">
+    <div class="alert alert-danger" role="alert">
+        <h1>{text}</h1>
+    </div>
+    '''
+
+
 @app.route('/bootstrap_sample')
 def bootstrap():
     return f'''<!doctype html>
