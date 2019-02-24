@@ -120,6 +120,7 @@ def bootstrap():
 
 @app.route('/form_sample', methods=['POST', 'GET'])
 def form_sample():
+    print(request.method)
     if request.method == 'GET':
         return '''<!doctype html>
                         <html lang="en">
@@ -153,10 +154,6 @@ def form_sample():
                                     <textarea class="form-control" id="about" rows="3" name="about"></textarea>
                                 </div>
                                 <div class="form-group">
-                                    <label for="photo">Приложите фотографию</label>
-                                    <input type="file" class="form-control-file" id="photo" name="file">
-                                </div>
-                                <div class="form-group">
                                     <label for="form-check">Укажите пол</label>
                                     <div class="form-check">
                                       <input class="form-check-input" type="radio" name="sex" id="male" value="male" checked>
@@ -183,11 +180,9 @@ def form_sample():
         print(request.form['email'])
         print(request.form['password'])
         print(request.form['class'])
-        print(request.form['file'])
         print(request.form['about'])
         print(request.form['accept'])
         print(request.form['sex'])
-        print(request)
         return "Форма отправлена"
 
 
