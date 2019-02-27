@@ -2,3 +2,4 @@
 Элементы формы - form_elements.py
 Сохранение файла - file_sample.py
 Чётное? - odd_even.py
+Новости. Наследование - news.py

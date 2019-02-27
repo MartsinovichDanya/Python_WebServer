@@ -8,7 +8,7 @@ app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 def sample_file_upload():
     print(request.method)
     if request.method == 'GET':
-        return render_template('odd_even_form.html')
+        return render_template('odd_even_form.html', title="Четное?")
     elif request.method == 'POST':
         try:
             return render_template('odd_even.html', number=int(request.form['number']))
