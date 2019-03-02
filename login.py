@@ -14,13 +14,19 @@ class LoginForm(FlaskForm):
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 
+with open("users.json", "rt", encoding="utf8") as f:
+    users = json.loads(f.read())['users']
+
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        print(request.form['username'], request.form['password'])
-        return 'Успешно!!!'
+        if {'login': request.form['username'], 'password': request.form['password']} \
+           in users:
+            return 'Успешно!!!'
+        else:
+            return 'Неверный логин или пароль'
     return render_template('login.html', title='Авторизация', form=form)
 
 
