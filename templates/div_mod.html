@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Делится или нет?</h1>
+    <form action="" method="post" novalidate>
+        <input type="number" class="form-control" id="number1" aria-describedby="number1" placeholder="Введите число" name="number1">
+        <input type="number" class="form-control" id="number2" aria-describedby="number2" placeholder="Введите число" name="number2">
+        <button type="submit" class="btn btn-primary">Отправить</button>
+    </form>
+{% endblock %}
