@@ -3,6 +3,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, PasswordField
 from wtforms.validators import DataRequired
 from flask import Flask, render_template, redirect, session
+import os.path
+from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
@@ -126,14 +128,18 @@ db = DB()
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     form = LoginForm()
-    user_name = form.username.data
-    password = form.password.data
-    user_model = UserModel(db.get_connection())
-    exists = user_model.exists(user_name, password)
-    if exists[0]:
-        session['username'] = user_name
-        session['user_id'] = exists[1]
-    return redirect("/index")
+    if form.validate_on_submit():
+        user_name = form.username.data
+        password = form.password.data
+        user_model = UserModel(db.get_connection())
+        exists = user_model.exists(user_name, generate_password_hash(password))
+        print(exists)
+        if exists[0]:
+            session['username'] = user_name
+            session['user_id'] = exists[1]
+            print(session)
+        return redirect("/index")
+    return render_template('login.html', title='Авторизация', form=form)
 
 
 @app.route('/logout')
@@ -150,7 +156,7 @@ def index():
         return redirect('/login')
     news = NewsModel(db.get_connection()).get_all(session['user_id'])
     return render_template('index.html', username=session['username'],
-                           news=news)
+                           news=news, title="Личные дневники")
 
 
 @app.route('/add_news', methods=['GET', 'POST'])
@@ -178,4 +184,13 @@ def delete_news(news_id):
 
 
 if __name__ == '__main__':
+    if not os.path.exists('news.db'):
+        # db = DB()
+        um = UserModel(db.get_connection())
+        um.init_table()
+        um.insert('test1', generate_password_hash('test1'))
+        um.insert('test2', generate_password_hash('test2'))
+        nm = NewsModel(db.get_connection())
+        nm.init_table()
+        # del db
     app.run(port=8080, host='127.0.0.1')
