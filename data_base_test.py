@@ -1,13 +1,16 @@
 import sqlite3
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, PasswordField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, InputRequired, EqualTo
 from flask import Flask, render_template, redirect, session
 import os.path
 import hashlib
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
+
+
+# date_sorting_func = lambda s: -int(''.join(list(reversed(s.replace('.', '')))))
 
 
 class DB:
@@ -122,6 +125,14 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Войти')
 
 
+class RegistrationForm(FlaskForm):
+    username = StringField('Логин', validators=[DataRequired()])
+    password = PasswordField('Пароль', validators=[InputRequired(),
+                                                   EqualTo('confirm', message='Пароли должны совпадать')])
+    confirm = PasswordField('Повторите пароль', validators=[DataRequired()])
+    submit = SubmitField('Зарегестрироваться')
+
+
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     form = LoginForm()
@@ -135,6 +146,18 @@ def login():
             session['user_id'] = exists[1]
         return redirect("/index")
     return render_template('login.html', title='Авторизация', form=form)
+
+
+@app.route('/registration', methods=['POST', 'GET'])
+def registration():
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user_name = form.username.data
+        password = form.password.data
+        user_model = UserModel(db.get_connection())
+        user_model.insert(user_name, hashlib.md5(bytes(password, encoding='utf8')).hexdigest())
+        return redirect('/login')
+    return render_template('registration.html', title='Регистрация', form=form)
 
 
 @app.route('/logout')

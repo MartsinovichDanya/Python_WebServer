@@ -21,7 +21,15 @@
                 </div>
             {% endfor %}
         </p>
+        <p>
+            {{ form.confirm.label }}<br>
+            {{ form.confirm }}<br>
+            {% for error in form.confirm.errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        </p>
         <p>{{ form.submit() }}</p>
-        <a href="/registration">Зарегестрироваться</a>
     </form>
 {% endblock %}
