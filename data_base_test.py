@@ -5,12 +5,10 @@ from wtforms.validators import DataRequired, InputRequired, EqualTo
 from flask import Flask, render_template, redirect, session
 import os.path
 import hashlib
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
-
-
-# date_sorting_func = lambda s: -int(''.join(list(reversed(s.replace('.', '')))))
 
 
 class DB:
@@ -34,7 +32,8 @@ class UserModel:
         cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                             (id INTEGER PRIMARY KEY AUTOINCREMENT, 
                              user_name VARCHAR(50),
-                             password_hash VARCHAR(128)
+                             password_hash VARCHAR(128),
+                             admin BOOL
                              )''')
         cursor.close()
         self.connection.commit()
@@ -42,8 +41,8 @@ class UserModel:
     def insert(self, user_name, password_hash):
         cursor = self.connection.cursor()
         cursor.execute('''INSERT INTO users 
-                          (user_name, password_hash) 
-                          VALUES (?,?)''', (user_name, password_hash))
+                          (user_name, password_hash, admin) 
+                          VALUES (?,?,?)''', (user_name, password_hash, True))
         cursor.close()
         self.connection.commit()
 
@@ -64,7 +63,7 @@ class UserModel:
         cursor.execute("SELECT * FROM users WHERE user_name = ? AND password_hash = ?",
                        (user_name, password_hash))
         row = cursor.fetchone()
-        return (True, row[0]) if row else (False,)
+        return (True, row[0], row[-1]) if row else (False,)
 
 
 class NewsModel:
@@ -77,16 +76,18 @@ class NewsModel:
                             (id INTEGER PRIMARY KEY AUTOINCREMENT, 
                              title VARCHAR(100),
                              content VARCHAR(1000),
+                             date VARCHAR(12),
                              user_id INTEGER
                              )''')
         cursor.close()
         self.connection.commit()
 
     def insert(self, title, content, user_id):
+        date = datetime.today()
         cursor = self.connection.cursor()
         cursor.execute('''INSERT INTO news 
-                          (title, content, user_id) 
-                          VALUES (?,?,?)''', (title, content, str(user_id)))
+                          (title, content, date, user_id) 
+                          VALUES (?,?,?,?)''', (title, content, date.strftime("%d.%m.%Y"), str(user_id)))
         cursor.close()
         self.connection.commit()
 
@@ -111,6 +112,16 @@ class NewsModel:
         cursor.execute('''DELETE FROM news WHERE id = ?''', (str(news_id)))
         cursor.close()
         self.connection.commit()
+
+    def get_count(self, user_id=None):
+        cursor = self.connection.cursor()
+        if user_id:
+            cursor.execute("SELECT COUNT(*) FROM news WHERE user_id = ?",
+                           (str(user_id)))
+        else:
+            cursor.execute("SELECT COUNT(*) FROM news")
+        rows = cursor.fetchall()
+        return rows
 
 
 class AddNewsForm(FlaskForm):
@@ -144,6 +155,7 @@ def login():
         if exists[0]:
             session['username'] = user_name
             session['user_id'] = exists[1]
+            session['admin_privilege'] = exists[2]
         return redirect("/index")
     return render_template('login.html', title='Авторизация', form=form)
 
@@ -173,8 +185,27 @@ def index():
     if 'username' not in session:
         return redirect('/login')
     news = NewsModel(db.get_connection()).get_all(session['user_id'])
+    news = sorted(news, key=lambda n: n[1].lower())
+    news = sorted(news, key=lambda n: -int(''.join(list(reversed(n[3].replace('.', ''))))))
     return render_template('index.html', username=session['username'],
                            news=news, title="Личные дневники")
+
+
+@app.route('/')
+@app.route('/admin')
+def admin():
+    if 'username' not in session:
+        return redirect('/login')
+    if not session['admin_privilege']:
+        return redirect('/index')
+    um = UserModel(db.get_connection())
+    nm = NewsModel(db.get_connection())
+    users = um.get_all()
+    user_data = []
+    for user in users:
+        user_data.append((user[1], user[0], nm.get_count(user[0])[0][0]))
+    return render_template('admin_page.html', username=session['username'],
+                           users=user_data, title="Личные дневники")
 
 
 @app.route('/add_news', methods=['GET', 'POST'])
