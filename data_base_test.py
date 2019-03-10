@@ -42,7 +42,7 @@ class UserModel:
         cursor = self.connection.cursor()
         cursor.execute('''INSERT INTO users 
                           (user_name, password_hash, admin) 
-                          VALUES (?,?,?)''', (user_name, password_hash, True))
+                          VALUES (?,?,?)''', (user_name, password_hash, False))
         cursor.close()
         self.connection.commit()
 
