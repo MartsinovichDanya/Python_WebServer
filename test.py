@@ -3,7 +3,6 @@ from requests import get, post, delete
 print(get('http://localhost:8080/news').json())
 print(get('http://localhost:8080/news/1').json())
 print(get('http://localhost:8080/news/8').json())
-print(get('http://localhost:8080/news/q').json())
 
 
 print(post('http://localhost:8080/news').json())
