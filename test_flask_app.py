@@ -271,6 +271,11 @@ def yandex_music():
     return render_template('yandex_music.html')
 
 
+@app.route('/list/<int:n>')
+def list(n):
+    return render_template('list.html', title='list', ints=range(1, n+1))
+
+
 @app.route('/delete_news/<int:news_id>', methods=['GET'])
 def delete_news(news_id):
     if 'username' not in session:
