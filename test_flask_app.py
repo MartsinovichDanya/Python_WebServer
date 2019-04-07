@@ -276,6 +276,16 @@ def list(n):
     return render_template('list.html', title='list', ints=range(1, n+1))
 
 
+@app.route('/youtube/<int:n>')
+def youtube(n):
+    video = ['https://www.youtube.com/embed/xER6hoKcHdo',
+             'https://www.youtube.com/embed/HcBjnYmF1BU',
+             'https://www.youtube.com/embed/LtFn3rtBNY0',
+             'https://www.youtube.com/embed/d70L6sYUMSk',
+             'https://www.youtube.com/embed/DGhGP9SnQgA']
+    return render_template('youtube.html', title='youtube', n=n, videos=video[:n])
+
+
 @app.route('/table/<int:n>/<int:m>')
 def table(n, m):
     return render_template('table.html', title='table', n=range(1, n+1), m=range(1, m+1))
