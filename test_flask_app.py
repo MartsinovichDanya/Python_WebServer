@@ -276,6 +276,11 @@ def list(n):
     return render_template('list.html', title='list', ints=range(1, n+1))
 
 
+@app.route('/table/<int:n>/<int:m>')
+def table(n, m):
+    return render_template('table.html', title='table', n=range(1, n+1), m=range(1, m+1))
+
+
 @app.route('/delete_news/<int:news_id>', methods=['GET'])
 def delete_news(news_id):
     if 'username' not in session:
