@@ -2,7 +2,8 @@ import sqlite3
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, PasswordField
 from wtforms.validators import DataRequired, InputRequired, EqualTo
-from flask import Flask, render_template, redirect, session
+from flask import Flask, render_template, redirect,\
+    session, jsonify, make_response, request
 import os.path
 import hashlib
 from datetime import datetime
@@ -38,11 +39,12 @@ class UserModel:
         cursor.close()
         self.connection.commit()
 
-    def insert(self, user_name, password_hash):
+    def insert(self, user_name, password):
         cursor = self.connection.cursor()
         cursor.execute('''INSERT INTO users 
                           (user_name, password_hash, admin) 
-                          VALUES (?,?,?)''', (user_name, password_hash, False))
+                          VALUES (?,?,?)''',
+                       (user_name, hashlib.md5(bytes(password, encoding='utf8')).hexdigest(), False))
         cursor.close()
         self.connection.commit()
 
@@ -58,10 +60,10 @@ class UserModel:
         rows = cursor.fetchall()
         return rows
 
-    def exists(self, user_name, password_hash):
+    def exists(self, user_name, password):
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM users WHERE user_name = ? AND password_hash = ?",
-                       (user_name, password_hash))
+                       (user_name, hashlib.md5(bytes(password, encoding='utf8')).hexdigest()))
         row = cursor.fetchone()
         return (True, row[0], row[-1]) if row else (False,)
 
@@ -120,8 +122,8 @@ class NewsModel:
                            (str(user_id)))
         else:
             cursor.execute("SELECT COUNT(*) FROM news")
-        rows = cursor.fetchall()
-        return rows
+        rows = cursor.fetchone()
+        return rows[0]
 
 
 class AddNewsForm(FlaskForm):
@@ -139,9 +141,50 @@ class LoginForm(FlaskForm):
 class RegistrationForm(FlaskForm):
     username = StringField('Логин', validators=[DataRequired()])
     password = PasswordField('Пароль', validators=[InputRequired(),
-                                                   EqualTo('confirm', message='Пароли должны совпадать')])
+                                                   EqualTo('confirm',
+                                                           message='Пароли должны совпадать')])
     confirm = PasswordField('Повторите пароль', validators=[DataRequired()])
-    submit = SubmitField('Зарегестрироваться')
+    submit = SubmitField('Зарегистрироваться')
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return make_response(jsonify({'error': 'Not found'}), 404)
+
+
+@app.route('/news',  methods=['GET'])
+def get_news():
+    news = NewsModel(db.get_connection()).get_all()
+    return jsonify({'news': news})
+
+
+@app.route('/news/<int:news_id>',  methods=['GET'])
+def get_one_news(news_id):
+    news = NewsModel(db.get_connection()).get(news_id)
+    if not news:
+        return jsonify({'error': 'Not found'})
+    return jsonify({'news': news})
+
+
+@app.route('/news', methods=['POST'])
+def create_news():
+    if not request.json:
+        return jsonify({'error': 'Empty request'})
+    elif not all(key in request.json for key in ['title', 'content', 'user_id']):
+        return jsonify({'error': 'Bad request'})
+    news = NewsModel(db.get_connection())
+    news.insert(request.json['title'], request.json['content'],
+                request.json['user_id'])
+    return jsonify({'success': 'OK'})
+
+
+@app.route('/news/<int:news_id>', methods=['DELETE'])
+def delete_news_rest(news_id):
+    news = NewsModel(db.get_connection())
+    if not news.get(news_id):
+        return jsonify({'error': 'Not found'})
+    news.delete(news_id)
+    return jsonify({'success': 'OK'})
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -151,7 +194,7 @@ def login():
         user_name = form.username.data
         password = form.password.data
         user_model = UserModel(db.get_connection())
-        exists = user_model.exists(user_name, hashlib.md5(bytes(password, encoding='utf8')).hexdigest())
+        exists = user_model.exists(user_name, password)
         if exists[0]:
             session['username'] = user_name
             session['user_id'] = exists[1]
@@ -167,7 +210,7 @@ def registration():
         user_name = form.username.data
         password = form.password.data
         user_model = UserModel(db.get_connection())
-        user_model.insert(user_name, hashlib.md5(bytes(password, encoding='utf8')).hexdigest())
+        user_model.insert(user_name, password)
         return redirect('/login')
     return render_template('registration.html', title='Регистрация', form=form)
 
@@ -203,7 +246,7 @@ def admin():
     users = um.get_all()
     user_data = []
     for user in users:
-        user_data.append((user[1], user[0], nm.get_count(user[0])[0][0]))
+        user_data.append((user[1], user[0], nm.get_count(user[0])))
     return render_template('admin_page.html', username=session['username'],
                            users=user_data, title="Личные дневники")
 
@@ -223,6 +266,11 @@ def add_news():
                            form=form, username=session['username'])
 
 
+@app.route('/yandex_music')
+def yandex_music():
+    return render_template('yandex_music.html')
+
+
 @app.route('/delete_news/<int:news_id>', methods=['GET'])
 def delete_news(news_id):
     if 'username' not in session:
@@ -237,8 +285,8 @@ if __name__ == '__main__':
         db = DB()
         um = UserModel(db.get_connection())
         um.init_table()
-        um.insert('test1', hashlib.md5(b'test1').hexdigest())
-        um.insert('test2', hashlib.md5(b'test2').hexdigest())
+        um.insert('test1', 'test1')
+        um.insert('test2', 'test2')
         nm = NewsModel(db.get_connection())
         nm.init_table()
     else:
